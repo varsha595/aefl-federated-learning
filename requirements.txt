@@ -1,0 +1,11 @@
+tensorflow>=2.15
+numpy
+pandas
+matplotlib
+scikit-learn
+kagglehub
+shap
+lime
+gradio
+pillow
+pydicom

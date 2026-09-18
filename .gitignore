@@ -1,0 +1,18 @@
+__pycache__/
+*.pyc
+.DS_Store
+.env
+
+# Large generated artifacts — regenerate via aefl_main.py, don't commit
+data/*
+!data/.gitkeep
+saved_models/*.keras
+results/*.png
+results/*.csv
+results/*.json
+results/*.npy
+results/*.txt
+results/shap_explanations/*.png
+!results/.gitkeep
+!results/shap_explanations/.gitkeep
+!saved_models/.gitkeep
