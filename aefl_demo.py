@@ -78,10 +78,32 @@ def _load_text(path):
 
 def _find_sample_images(n=3):
     candidates = []
-    for pattern in ("data/chest_xray/test/*/*.jpeg", "data/chest_xray/test/*/*.png",
-                     "data/**/test/*/*.jpeg"):
+    patterns = (
+        "data/chest_xray/test/*/*.jpeg", "data/chest_xray/test/*/*.png",
+        "data/**/test/*/*.jpeg",
+        os.path.expanduser("~/.cache/kagglehub/datasets/**/test/*/*.jpeg"),
+        os.path.expanduser("~/.cache/kagglehub/datasets/**/test/*/*.png"),
+    )
+    for pattern in patterns:
         candidates.extend(glob.glob(pattern, recursive=True))
-    return candidates[:n]
+    # dedupe while preserving order, and prefer a mix of both classes
+    seen = set()
+    unique = []
+    for c in candidates:
+        if c not in seen:
+            seen.add(c)
+            unique.append(c)
+    normal = [c for c in unique if os.sep + "NORMAL" + os.sep in c.upper() or "NORMAL" in c.upper()]
+    pneumonia = [c for c in unique if c not in normal]
+    mixed = []
+    for a, b in zip(normal, pneumonia):
+        mixed.extend([a, b])
+    mixed.extend(unique)  # fallback fill if one class ran out
+    final = []
+    for c in mixed:
+        if c not in final:
+            final.append(c)
+    return final[:n]
 
 
 MODEL, MODEL_NAME = _find_available_model()
