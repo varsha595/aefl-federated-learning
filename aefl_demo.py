@@ -121,7 +121,12 @@ def predict_xray(image):
         return "No trained model found. Run `python aefl_main.py` first.", None, None, ""
 
     from PIL import Image
-    img = Image.fromarray(image).convert("RGB").resize((IMAGE_SIZE, IMAGE_SIZE))
+    # `image` may be a filepath (gr.Image(type="filepath")) or, for backward
+    # compatibility, a numpy array from an older Gradio client.
+    if isinstance(image, str):
+        img = Image.open(image).convert("RGB").resize((IMAGE_SIZE, IMAGE_SIZE))
+    else:
+        img = Image.fromarray(image).convert("RGB").resize((IMAGE_SIZE, IMAGE_SIZE))
     arr = np.asarray(img, dtype="float32") / 255.0
 
     prob = float(MODEL.predict(arr[np.newaxis, ...], verbose=0)[0, 0])
@@ -307,7 +312,7 @@ def build_demo():
                 gr.Markdown("Upload a chest X-ray, or click one of the examples below.")
                 with gr.Row():
                     with gr.Column():
-                        img_in = gr.Image(type="numpy", label="Chest X-ray")
+                        img_in = gr.Image(type="filepath", label="Chest X-ray")
                         btn = gr.Button("Analyze", variant="primary")
                         if SAMPLE_IMAGES:
                             gr.Examples(examples=SAMPLE_IMAGES, inputs=img_in)
