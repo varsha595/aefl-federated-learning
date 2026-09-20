@@ -146,8 +146,9 @@ def predict_xray(image):
     ax.set_title(f"Saliency overlay — focus: {region}")
     ax.axis("off")
     fig.tight_layout()
-    overlay_path = os.path.join(RESULTS_DIR, "_live_overlay.png")
-    os.makedirs(RESULTS_DIR, exist_ok=True)
+    import tempfile
+    import uuid
+    overlay_path = os.path.join(tempfile.gettempdir(), f"aefl_live_overlay_{uuid.uuid4().hex}.png")
     fig.savefig(overlay_path, dpi=120)
     plt.close(fig)
 
@@ -380,4 +381,8 @@ def build_demo():
 
 if __name__ == "__main__":
     demo = build_demo()
-    demo.launch(share=True)
+    # RESULTS_DIR may be a symlink (e.g. into a mounted Google Drive folder
+    # used for checkpoint persistence); Gradio's file-serving allowlist checks
+    # the resolved real path, so both forms need to be explicitly allowed.
+    allowed = {os.path.abspath(RESULTS_DIR), os.path.realpath(RESULTS_DIR)}
+    demo.launch(share=True, allowed_paths=list(allowed))
