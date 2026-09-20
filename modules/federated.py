@@ -64,6 +64,28 @@ def evaluate_model(model, X, y, batch_size=64):
     return float(loss), float(acc)
 
 
+def evaluate_balanced_accuracy(model, X, y, batch_size=64):
+    """Average of per-class recall (sensitivity + specificity) / 2.
+
+    Unlike raw accuracy, this can't be gamed by a model that collapses to
+    always predicting the majority class under severe class imbalance —
+    exactly the failure mode data_quality (D_i) alone doesn't always catch
+    when a hospital's local A_i term rewards that shortcut.
+    """
+    y_prob = model.predict(X, batch_size=batch_size, verbose=0).ravel()
+    y_pred = (y_prob >= 0.5).astype(int)
+    y_true = np.asarray(y).ravel()
+
+    tp = int(np.sum((y_pred == 1) & (y_true == 1)))
+    fn = int(np.sum((y_pred == 0) & (y_true == 1)))
+    tn = int(np.sum((y_pred == 0) & (y_true == 0)))
+    fp = int(np.sum((y_pred == 1) & (y_true == 0)))
+
+    sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+    specificity = tn / (tn + fp) if (tn + fp) > 0 else 0.0
+    return (sensitivity + specificity) / 2.0
+
+
 def fedavg_aggregate(weights_list, sample_counts):
     total = sum(sample_counts)
     avg = [np.zeros_like(w) for w in weights_list[0]]
@@ -268,9 +290,10 @@ def run_aefl(hospitals, X_val, y_val, X_test, y_test, config, algorithm_name="AE
             local_weights.append(w)
             sample_counts.append(len(h["X"]))
 
-            # A_i for next round: accuracy on this hospital's own local val split
+            # A_i for next round: balanced accuracy on this hospital's own
+            # local val split (not raw accuracy — see evaluate_balanced_accuracy).
             model.set_weights(w)
-            _, local_acc = evaluate_model(model, h["X_val"], h["y_val"])
+            local_acc = evaluate_balanced_accuracy(model, h["X_val"], h["y_val"])
             local_val_accs[idx] = local_acc
 
         sel_scores = [scores[i] for i in selected]
